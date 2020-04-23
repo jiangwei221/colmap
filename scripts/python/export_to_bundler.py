@@ -37,6 +37,7 @@ import sqlite3
 import shutil
 import gzip
 import numpy as np
+import imageio
 
 
 def parse_args():
@@ -80,15 +81,17 @@ def main():
             image_id = row[0]
             camera_id = row[1]
             image_name = row[2]
-            print "Copying image", image_name
+            print("Copying image", image_name)
             images[image_id] = (len(images), image_name)
-            fid.write("./%s 0 %f\n" % (image_name, cameras[camera_id][0]))
+            fid.write("./%s 0 %f\n" % (image_name[:-3] + 'jpg', cameras[camera_id][0]))
             if not os.path.exists(os.path.join(args.output_path, image_name)):
-                shutil.copyfile(os.path.join(args.image_path, image_name),
-                                os.path.join(args.output_path, image_name))
+                imageio.imsave(os.path.join(args.output_path, image_name[:-3] + 'jpg'), 
+                               imageio.imread(os.path.join(args.image_path, image_name)))
+                # shutil.copyfile(os.path.join(args.image_path, image_name),
+                #                 os.path.join(args.output_path, image_name))
 
-    for image_id, (image_idx, image_name) in images.iteritems():
-        print "Exporting key file for", image_name
+    for image_id, (image_idx, image_name) in images.items():
+        print("Exporting key file for", image_name)
         base_name, ext = os.path.splitext(image_name)
         key_file_name = os.path.join(args.output_path, base_name + ".key")
         key_file_name_gz = key_file_name + ".gz"
@@ -118,11 +121,11 @@ def main():
                     fid.write(" ".join(map(str, desc_block.ravel().tolist())))
                     fid.write("\n")
 
-        with open(key_file_name, "rb") as fid_in:
-            with gzip.open(key_file_name + ".gz", "wb") as fid_out:
-                fid_out.writelines(fid_in)
+        # with open(key_file_name, "rb") as fid_in:
+        #     with gzip.open(key_file_name_gz, "wb") as fid_out:
+        #         fid_out.writelines(fid_in)
 
-        os.remove(key_file_name)
+        # os.remove(key_file_name)
 
     with open(os.path.join(args.output_path, "matches.init.txt"), "w") as fid:
         cursor.execute("SELECT pair_id, data FROM two_view_geometries "
